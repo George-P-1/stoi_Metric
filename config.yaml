@@ -1,8 +1,3 @@
-# NOTE = to change the name of the directory where hydra stores its logs and outputs
-hydra:
-  run:
-    dir: ./hydra_files/${now:%Y-%m-%d}/${now:%H-%M-%S}
-
 main_path:
   root: C:/Users/George/Desktop/Automatic Control and Robotics/Semester 7/Thesis
 
@@ -10,7 +5,7 @@ test_path:
   root: ${main_path.root}/Datasets and other Downloads/clarity_CPC1_data.test.v1/clarity_CPC1_data
   spin_folder: ${test_path.root}/clarity_data/HA_outputs/test           # NOTE - Speech in Noise audio. 
   scenes_folder: ${test_path.root}/clarity_data/scenes                  # NOTE - isolated audio files, like clean speech. Using scenes from the test folder instead of the training archive folder.
-  ref_file: ${test_path.root}/metadata/CPC1.test.json                   # NOTE - contains information about listener, corresponding audio files and prompts.
+  ref_file: ${test_path.root}/metadata/CPC1.test.json                   # NOTE - contains information about listener, corresponding audio files (scenes) and prompts.
   listeners_file: ${test_path.root}/metadata/listeners.CPC1_all.json    # NOTE - audiogram information of each listener.
 
 # REVIEW - Need test_indep?
@@ -24,3 +19,8 @@ test_result_path:
 test_indep_result_path:
   root: ${main_path.root}/Datasets and other Downloads/clarity-recipes-cpc1-test_listener_responses
   result_ref_file: ${test_result_path.root}/CPC1.test_indep.json
+
+# NOTE = to change the name of the directory where hydra stores its logs and outputs
+hydra:
+  run:
+    dir: ./hydra_files/${now:%Y-%m-%d}/${now:%H-%M-%S}
