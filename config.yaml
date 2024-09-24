@@ -1,3 +1,8 @@
+# NOTE = to change the name of the directory where hydra stores its logs and outputs
+hydra:
+  run:
+    dir: ./hydra_files/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
 main_path:
   root: C:/Users/George/Desktop/Automatic Control and Robotics/Semester 7/Thesis
 
