@@ -5,7 +5,8 @@ from pathlib import Path
 import json
 import soundfile as sf
 from scipy.signal import resample
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 # SECTION Main code here
 
@@ -26,16 +27,25 @@ def main(path_data: DictConfig) -> None:
             print(target_file_path, "\n")  # REMOVE_LATER
             # TODO - NOTE - Opening audio files using soundfile
             spin, spin_sr = sf.read(spin_file_path)
-            print(f"Sample rate of spin audio {ref_json[0]['signal']} is {spin_sr}.")
+            print(f"Number of samples of spin audio is {len(spin)} and sample rate is {ref_json[0]['signal']} is {spin_sr} and shape is {spin.shape}.")   # REMOVE_LATER
+            # print(f"sf.info() output: {sf.info(spin_file_path, True)}")   # REMOVE_LATER
             # NOTE - Resampling 
             # REVIEW - Can use scipy (resample or decimate functions) or librosa library. Some issue with scipy using only frequency domain or something like that.
-            spin_resampled = resample(spin, int(len(spin) * path_data.sample_rate / spin_sr))   # NOTE - current_no_of_samples / current_sampling_rate is the duration of audio signal
-            print(f"Number of samples of new spin audio is {len(spin_resampled)} and sample rate is {path_data.sample_rate}.")
+            spin_sr_resampled = path_data.sample_rate
+            spin_resampled = resample(spin, int(len(spin) * spin_sr_resampled / spin_sr))   # NOTE - current_no_of_samples / current_sampling_rate is the duration of audio signal
+            print(f"Number of samples of new spin audio is {len(spin_resampled)} and sample rate is {spin_sr_resampled} and shape is {spin_resampled.shape}.")  # REMOVE_LATER
             # TODO - Plot the original and resampled audio using matplotlib
+            time_axis = np.arange(0, len(spin)) / spin_sr
+            print(f" Spin shape: {spin.shape} and time axis shape: {time_axis.shape}")
+            plt.stem(time_axis, spin[:,0]) # REMOVE_LATER - Only displaying one channel
+            time_axis = np.arange(0, len(spin_resampled)) / spin_sr_resampled
+            plt.stem(time_axis, spin_resampled[:,0])
+            plt.show()
+            # NOTE - realized it is a bad idea to graph it because there are 16000 samples per second. Maybe listening to it is a better idea.
 
         ref_file.close()
     except FileNotFoundError:
-        print(f'File not found: {path_data.test_path.ref_file}')
+        print(f'JSON file not found: {path_data.test_path.ref_file}')
         return None
     finally:
         print(f'Finished processing JSON file.')
