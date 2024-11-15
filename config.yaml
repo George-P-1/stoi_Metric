@@ -1,23 +1,18 @@
 main_path:
-  root: C:/Users/George/Desktop/Automatic Control and Robotics/Semester 7/Thesis
+  root: C:/Users/Codeexia/FinalSemester
 
 test_path:
-  root: ${main_path.root}/Datasets and other Downloads/clarity_CPC1_data.test.v1/clarity_CPC1_data
-  spin_folder: ${test_path.root}/clarity_data/HA_outputs/test           # NOTE - Speech in Noise audio. 
-  scenes_folder: ${test_path.root}/clarity_data/scenes                  # NOTE - isolated audio files, like clean speech. Using scenes from the test folder instead of the training archive folder.
-  ref_file: ${test_path.root}/metadata/CPC1.test.json                   # NOTE - contains information about listener, corresponding audio files (scenes) and prompts.
-  listeners_file: ${test_path.root}/metadata/listeners.CPC1_all.json    # NOTE - audiogram information of each listener.
+  root: ${main_path.root}/CPC1 Data/clarity_CPC1_data.test.v1/clarity_CPC1_data
+  spin_folder: ${test_path.root}/clarity_data/HA_outputs/test           # Speech in Noise audio
+  scenes_folder: ${test_path.root}/clarity_data/scenes                  # Clean speech audio
+  ref_file: ${test_path.root}/metadata/CPC1.test.json                   # JSON with listener and scene info
+  listeners_file: ${test_path.root}/metadata/listeners.CPC1_all.json    # Listener audiogram data
+  stoi_output_file: ${test_path.root}/stoi_scores.json                  # Path to save STOI scores
 
-# REVIEW - Need test_indep?
+# Specify the sample rate for resampling audio
+sample_rate: 10000
 
-# LINK - Downloaded from https://github.com/claritychallenge/clarity/tree/main/recipes/cpc1/test_listener_responses
-test_result_path:
-  root: ${main_path.root}/Datasets and other Downloads/clarity-recipes-cpc1-test_listener_responses
-  result_ref_file: ${test_result_path.root}/CPC1.test.json              # NOTE - contains additional information such as the correctness, hits and response
-
-sample_rate: 16000
-
-# NOTE - to change the name of the directory where hydra stores its logs and outputs
+# Configure Hydra's output logging
 hydra:
   run:
     dir: ./hydra_files/${now:%Y-%m-%d}/${now:%H-%M-%S}
