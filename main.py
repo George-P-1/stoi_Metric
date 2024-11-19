@@ -7,6 +7,9 @@ import soundfile as sf
 from scipy.signal import resample
 import sounddevice as sd
 import pystoi
+import matplotlib.pyplot as plt
+
+import plotter
 
 
 # SECTION Main code here
@@ -42,40 +45,76 @@ def main(path_data: DictConfig) -> None:
             print(f"Number of samples of new target audio is {len(target_resampled)} and sample rate is {new_sr} and shape is {target_resampled.shape}.")  # REMOVE_LATER
             
             # NOTE - Play audio files (before and after resampling)
-            # Before
-            print("Playing SPIN and target audio files before resampling...")
-            sd.play(spin, spin_sr)
-            sd.wait()
-            sd.play(target, target_sr)
-            sd.wait()
-            # After
-            print("Playing SPIN and target audio files after resampling...")
-            sd.play(spin_resampled, new_sr)
-            sd.wait()   
-            sd.play(target_resampled, new_sr)
-            sd.wait()
-
-            # SECTION - Implement STOI Metric
+            # # Before
+            # print("Playing SPIN and target audio files before resampling...")
+            # sd.play(spin, spin_sr)
+            # sd.wait()
+            # sd.play(target, target_sr)
+            # sd.wait()
+            # # After
+            # print("Playing SPIN and target audio files after resampling...")
+            # sd.play(spin_resampled, new_sr)
+            # sd.wait()   
+            # sd.play(target_resampled, new_sr)
+            # sd.wait()
 
             # NOTE - Convert stereo to mono
-            if len(spin_resampled.shape) == 2:
+            if len(spin.shape) == 2:
+                spin_mono = spin.mean(axis=1)
                 spin_resampled = spin_resampled.mean(axis=1)
             else:
                 raise Exception("SPIN audio is not stereo.")
-            if len(target_resampled.shape) == 2:
+            if len(target.shape) == 2:
+                target_mono = target.mean(axis=1)
                 target_resampled = target_resampled.mean(axis=1)
             else:
                 raise Exception("Target audio is not stereo.")
 
-            print("Playing SPIN and target audio files after converting to mono...")
-            sd.play(spin_resampled, new_sr)
-            sd.wait()
-            sd.play(target_resampled, new_sr)
-            sd.wait()
+            # NOTE - Plots
+            # %%
+            # Spectrograms
+            plt.figure(1)
+            # Plot before resampling
+            plt.subplot(2,2,1)
+            plotter.plot_spectrogram(spin_mono, spin_sr, 'Spectrogram of SPIN (before resampling)')
+            plt.subplot(2,2,2)
+            plotter.plot_spectrogram(target_mono, target_sr, 'Spectrogram of Target (before resampling)')
+            # Plot after resampling
+            plt.subplot(2,2,3)
+            plotter.plot_spectrogram(spin_resampled, new_sr, 'Spectrogram of SPIN (after resampling)')
+            plt.subplot(2,2,4)
+            plotter.plot_spectrogram(target_resampled, new_sr, 'Spectrogram of Target (after resampling)')
 
-            # NOTE - Directly using pystoi library to see how stoi monotonic output looks like.
+            # Signals in amplitude-time
+            plt.figure(2)
+            # Plot before resampling
+            plt.subplot(2,2,1)
+            plotter.plot_regular(spin_mono, len(spin_mono), spin_sr, 'SPIN (before resampling)')
+            plt.subplot(2,2,2)
+            plotter.plot_regular(target_mono, len(target_mono), target_sr, 'Target (before resampling)')
+            # Plot after resampling
+            plt.subplot(2,2,3)
+            plotter.plot_regular(spin_resampled, len(spin_resampled), new_sr, 'SPIN (after resampling)')
+            plt.subplot(2,2,4)
+            plotter.plot_regular(target_resampled, len(target_resampled), new_sr, 'Target (after resampling)')
+
+            plt.tight_layout()  # Adjust spacing
+            plt.show()
+
+            # print("Playing SPIN and target audio files after converting to mono...")
+            # sd.play(spin_resampled, new_sr)
+            # sd.wait()
+            # sd.play(target_resampled, new_sr)
+            # sd.wait()
+
+            # %%
+
+            # SECTION - STOI Metric using pystoi
+            # Directly using pystoi library to see how stoi monotonic output looks like.
             stoi_val = pystoi.stoi(target_resampled, spin_resampled, new_sr)
             print(f"STOI value between target and spin audio is {stoi_val}.")
+
+            # SECTION - Implement STOI Metric
 
 
         ref_file.close()
