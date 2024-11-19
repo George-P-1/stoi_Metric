@@ -58,15 +58,15 @@ def main(path_data: DictConfig) -> None:
             # sd.play(target_resampled, new_sr)
             # sd.wait()
 
-            # NOTE - Convert stereo to mono
+            # NOTE - Convert stereo to mono [Instead of computing stoi of each ear separately]
             if len(spin.shape) == 2:
                 spin_mono = spin.mean(axis=1)
-                spin_resampled = spin_resampled.mean(axis=1)
+                spin_resampled_mono = spin_resampled.mean(axis=1)
             else:
                 raise Exception("SPIN audio is not stereo.")
             if len(target.shape) == 2:
                 target_mono = target.mean(axis=1)
-                target_resampled = target_resampled.mean(axis=1)
+                target_resampled_mono = target_resampled.mean(axis=1)
             else:
                 raise Exception("Target audio is not stereo.")
 
@@ -81,9 +81,9 @@ def main(path_data: DictConfig) -> None:
             plotter.plot_spectrogram(target_mono, target_sr, 'Spectrogram of Target (before resampling)')
             # Plot after resampling
             plt.subplot(2,2,3)
-            plotter.plot_spectrogram(spin_resampled, new_sr, 'Spectrogram of SPIN (after resampling)')
+            plotter.plot_spectrogram(spin_resampled_mono, new_sr, 'Spectrogram of SPIN (after resampling)')
             plt.subplot(2,2,4)
-            plotter.plot_spectrogram(target_resampled, new_sr, 'Spectrogram of Target (after resampling)')
+            plotter.plot_spectrogram(target_resampled_mono, new_sr, 'Spectrogram of Target (after resampling)')
 
             # Signals in amplitude-time
             plt.figure(2)
@@ -94,25 +94,30 @@ def main(path_data: DictConfig) -> None:
             plotter.plot_regular(target_mono, len(target_mono), target_sr, 'Target (before resampling)')
             # Plot after resampling
             plt.subplot(2,2,3)
-            plotter.plot_regular(spin_resampled, len(spin_resampled), new_sr, 'SPIN (after resampling)')
+            plotter.plot_regular(spin_resampled_mono, len(spin_resampled_mono), new_sr, 'SPIN (after resampling)')
             plt.subplot(2,2,4)
-            plotter.plot_regular(target_resampled, len(target_resampled), new_sr, 'Target (after resampling)')
+            plotter.plot_regular(target_resampled_mono, len(target_resampled_mono), new_sr, 'Target (after resampling)')
 
             plt.tight_layout()  # Adjust spacing
             plt.show()
 
             # print("Playing SPIN and target audio files after converting to mono...")
-            # sd.play(spin_resampled, new_sr)
+            # sd.play(spin_resampled_mono, new_sr)
             # sd.wait()
-            # sd.play(target_resampled, new_sr)
+            # sd.play(target_resampled_mono, new_sr)
             # sd.wait()
 
             # %%
 
-            # SECTION - STOI Metric using pystoi
+            # SECTION - Compute STOI Metric using pystoi
             # Directly using pystoi library to see how stoi monotonic output looks like.
-            stoi_val = pystoi.stoi(target_resampled, spin_resampled, new_sr)
-            print(f"STOI value between target and spin audio is {stoi_val}.")
+            # REVIEW - Not sure which channel is right ear and which one is left ear
+            stoi_val = pystoi.stoi(target_resampled[:,0], spin_resampled[:,0], new_sr)
+            print(f"STOI value for intelligibility of Right Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            stoi_val = pystoi.stoi(target_resampled[:,1], spin_resampled[:,1], new_sr)
+            print(f"STOI value for intelligibility of Left Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            stoi_val = pystoi.stoi(target_resampled_mono, spin_resampled_mono, new_sr)
+            print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
 
             # SECTION - Implement STOI Metric
 
