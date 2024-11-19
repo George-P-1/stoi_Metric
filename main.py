@@ -6,6 +6,7 @@ import json
 import soundfile as sf
 from scipy.signal import resample
 import sounddevice as sd
+import pystoi
 
 
 # SECTION Main code here
@@ -26,7 +27,7 @@ def main(path_data: DictConfig) -> None:
             # Path of audio files to open, HA_Output and target_anechoic
             spin_file_path = Path(path_data.test_path.spin_folder) / f"{ref_json[scene_index]['signal']}.wav"
             target_file_path = Path(path_data.test_path.scenes_folder) / f"{ref_json[scene_index]['scene']}_target_anechoic.wav"
-            print(spin_file_path, "\n", target_file_path, "\n")  # REMOVE_LATER
+            print("Paths to current audio files:\n", spin_file_path, "\n", target_file_path, "\n")  # REMOVE_LATER
             # Opening audio files using soundfile
             spin, spin_sr = sf.read(spin_file_path)
             target, target_sr = sf.read(target_file_path)
@@ -40,19 +41,46 @@ def main(path_data: DictConfig) -> None:
             print(f"Number of samples of new spin audio is {len(spin_resampled)} and sample rate is {new_sr} and shape is {spin_resampled.shape}.")  # REMOVE_LATER
             print(f"Number of samples of new target audio is {len(target_resampled)} and sample rate is {new_sr} and shape is {target_resampled.shape}.")  # REMOVE_LATER
             
-            # NOTE - Play audio files
+            # NOTE - Play audio files (before and after resampling)
+            # Before
+            print("Playing SPIN and target audio files before resampling...")
             sd.play(spin, spin_sr)
             sd.wait()
             sd.play(target, target_sr)
             sd.wait()
+            # After
+            print("Playing SPIN and target audio files after resampling...")
+            sd.play(spin_resampled, new_sr)
+            sd.wait()   
+            sd.play(target_resampled, new_sr)
+            sd.wait()
 
             # SECTION - Implement STOI Metric
+
+            # NOTE - Convert stereo to mono
+            if len(spin_resampled.shape) == 2:
+                spin_resampled = spin_resampled.mean(axis=1)
+            else:
+                raise Exception("SPIN audio is not stereo.")
+            if len(target_resampled.shape) == 2:
+                target_resampled = target_resampled.mean(axis=1)
+            else:
+                raise Exception("Target audio is not stereo.")
+
+            print("Playing SPIN and target audio files after converting to mono...")
+            sd.play(spin_resampled, new_sr)
+            sd.wait()
+            sd.play(target_resampled, new_sr)
+            sd.wait()
+
+            # NOTE - Directly using pystoi library to see how stoi monotonic output looks like.
+            stoi_val = pystoi.stoi(target_resampled, spin_resampled, new_sr)
+            print(f"STOI value between target and spin audio is {stoi_val}.")
 
 
         ref_file.close()
     except FileNotFoundError:
-        print(f'JSON file not found: {path_data.test_path.ref_file}')
-        return None
+        raise Exception(f'JSON file not found: {path_data.test_path.ref_file}')
     finally:
         print(f'Finished processing JSON file.')
 

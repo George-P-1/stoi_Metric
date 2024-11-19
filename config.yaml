@@ -15,7 +15,7 @@ test_result_path:
   root: ${main_path.root}/Datasets and other Downloads/clarity-recipes-cpc1-test_listener_responses
   result_ref_file: ${test_result_path.root}/CPC1.test.json              # NOTE - contains additional information such as the correctness, hits and response
 
-sample_rate: 16000
+sample_rate: 10000
 
 # NOTE - to change the name of the directory where hydra stores its logs and outputs
 hydra:
