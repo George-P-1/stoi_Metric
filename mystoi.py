@@ -46,10 +46,9 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate) -> float:
     if sr != sampling_rate:
         raise Exception("Sampling rate is not {}".format(sr))
 
-
     pass
 
-# STUB
+
 def calc_RMSE(stoi_arr, listeners_arr) -> float:
     """
     Calculates Root Mean Squared Error value when given a list of computed STOI values and list of actual listeners scores. 
@@ -61,4 +60,5 @@ def calc_RMSE(stoi_arr, listeners_arr) -> float:
     Returns:
         float: RMSE value
     """
-    pass
+    error = stoi_arr - listeners_arr
+    return np.sqrt(np.mean((error) ** 2))
