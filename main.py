@@ -10,6 +10,7 @@ import pystoi
 import matplotlib.pyplot as plt
 
 import plotter
+import mystoi
 
 
 # SECTION Main code here
@@ -46,19 +47,6 @@ def main(path_data: DictConfig) -> None:
                 print(f"Number of samples of new spin audio is {len(spin_resampled)} and sample rate is {new_sr} and shape is {spin_resampled.shape}.")  # REMOVE_LATER
                 print(f"Number of samples of new target audio is {len(target_resampled)} and sample rate is {new_sr} and shape is {target_resampled.shape}.")  # REMOVE_LATER
             
-            # NOTE - Play audio files (before and after resampling)
-            # # Before
-            # print("Playing SPIN and target audio files before resampling...")
-            # sd.play(spin, spin_sr)
-            # sd.wait()
-            # sd.play(target, target_sr)
-            # sd.wait()
-            # # After
-            # print("Playing SPIN and target audio files after resampling...")
-            # sd.play(spin_resampled, new_sr)
-            # sd.wait()   
-            # sd.play(target_resampled, new_sr)
-            # sd.wait()
 
             # NOTE - Convert stereo to mono [Instead of computing stoi of each ear separately]
             if len(spin.shape) == 2:
@@ -75,7 +63,7 @@ def main(path_data: DictConfig) -> None:
             # NOTE - Plots
             # %%
             # Spectrograms
-            plt.figure(1)
+            plt.figure("Spectrograms (Mono Signals)")
             # Plot before resampling
             plt.subplot(2,2,1)
             plotter.plot_spectrogram(spin_mono, spin_sr, 'Spectrogram of SPIN (before resampling)')
@@ -86,9 +74,10 @@ def main(path_data: DictConfig) -> None:
             plotter.plot_spectrogram(spin_resampled_mono, new_sr, 'Spectrogram of SPIN (after resampling)')
             plt.subplot(2,2,4)
             plotter.plot_spectrogram(target_resampled_mono, new_sr, 'Spectrogram of Target (after resampling)')
+            plt.tight_layout()  # Adjust spacing
 
             # Signals in amplitude-time
-            plt.figure(2)
+            plt.figure("Amplitude-Time (Mono Signals)")
             # Plot before resampling
             plt.subplot(2,2,1)
             plotter.plot_regular(spin_mono, len(spin_mono), spin_sr, 'SPIN (before resampling)')
@@ -99,15 +88,29 @@ def main(path_data: DictConfig) -> None:
             plotter.plot_regular(spin_resampled_mono, len(spin_resampled_mono), new_sr, 'SPIN (after resampling)')
             plt.subplot(2,2,4)
             plotter.plot_regular(target_resampled_mono, len(target_resampled_mono), new_sr, 'Target (after resampling)')
-
             plt.tight_layout()  # Adjust spacing
+
             plt.show()
 
-            # print("Playing SPIN and target audio files after converting to mono...")
-            # sd.play(spin_resampled_mono, new_sr)
-            # sd.wait()
-            # sd.play(target_resampled_mono, new_sr)
-            # sd.wait()
+            # NOTE - Play audio files (before and after resampling)
+            if False:     # REMOVE_LATER - Change Boolean to turn on/off playing files. 
+                # Before
+                print("Playing SPIN and target audio files before resampling...")
+                sd.play(spin, spin_sr)
+                sd.wait()
+                sd.play(target, target_sr)
+                sd.wait()
+                # After
+                print("Playing SPIN and target audio files after resampling...")
+                sd.play(spin_resampled, new_sr)
+                sd.wait()   
+                sd.play(target_resampled, new_sr)
+                sd.wait()
+                print("Playing SPIN and target audio files after converting to mono...\n")
+                sd.play(spin_resampled_mono, new_sr)
+                sd.wait()
+                sd.play(target_resampled_mono, new_sr)
+                sd.wait()
 
             # %%
 
@@ -122,6 +125,14 @@ def main(path_data: DictConfig) -> None:
             print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
 
             # SECTION - Implement STOI Metric
+            print("----------mystoi values below----------\n")
+            
+            stoi_val = mystoi.compute_stoi(target_resampled[:,0], spin_resampled[:,0], new_sr)
+            print(f"STOI value for intelligibility of Right Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            stoi_val = mystoi.compute_stoi(target_resampled[:,1], spin_resampled[:,1], new_sr)
+            print(f"STOI value for intelligibility of Left Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            stoi_val = mystoi.compute_stoi(target_resampled_mono, spin_resampled_mono, new_sr)
+            print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
 
 
         ref_file.close()
