@@ -23,6 +23,7 @@ SR = 10000                  # Sampling rate/frequency
 TRUE_FRAME_LEN = 256        # number of samples of Hann-windowed frames
 OVERLAP = 0.5*256           # 50% overlap =128 samples both sides of frame. So padding upto 512 samples 
 FRAME_LEN = 512             # =256 + OVERLAP * 2
+ENERGY_RANGE = 40           # Speech dynamic range
 # one-third octave related
 OCTAVE_BANDS = 15           # Number of one-third octave bands used
 LCF = 150                   # lowest center frequency. Estimates higher c.f. is approx. 4.3kHz
@@ -49,8 +50,8 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     """
     # Check if the sampling rate is 10kHz
     # REVIEW - Maybe later the resampling can be done within compute_stoi() function
-    if sr != sampling_rate:
-        raise Exception("Sampling rate is not {}".format(sr))
+    if SR != sampling_rate:
+        raise Exception("Sampling rate is not {}".format(SR))
 
     pass
 
@@ -79,25 +80,13 @@ def one_third_octaves(sr: int, frame_len: int, num_bands: int, lcf):
     
     bands = np.array(range(num_bands))  # list for 15 bands
     cfs = np.power(2.0, (bands / octave_kind)) * lcf # Center frequencies of bands
-    # REVIEW - The paper mentions highest center frequency is approx. 4.3kHz but it isnt when calculated.
+    # REVIEW - The paper mentions highest center frequency is approx. 4.3kHz but it isn't when calculated.
     ube = lcf * np.power(2.0, (2 * bands + 1) / (2*octave_kind))  # upper band edge
     # NOTE - However, the upper band edge of highest band is approx. 4.3kHz
     lbe = lcf * np.power(2.0, (2 * bands - 1) / (2*octave_kind))  # lower band edge
     
     obm = np.zeros((num_bands, len(dft_bins)))  # Octave Band Matrix
     # rows are bands and columns are dft_bins. A tall matrix.
-    '''
-    Example of Octave Band Matrix (obm) for 3 bands and 7 bins:
-    obm = [
-    [0 1 1 1 0 0 0]  # Band 1 (covers bins 1–3)
-    [0 0 1 1 1 0 0]  # Band 2 (slight overlap with Band 1, bins 2–4)
-    [0 0 0 1 1 1 0]  # Band 3 (covers bins 4–6)
-    ]
-    Overlaps are possible in some 1/3 octave cases. I assume it depends on the choosing of lowest center frequency.
-    '''
-
-    np.set_printoptions(suppress=True, formatter={'all': lambda x: f'{x:.6f}'})
-    print(obm.shape, obm)
 
     for band in range(len(cfs)):
         dft_bin = np.argmin(np.square(dft_bins - lbe[band])) # index of smallest value/distance
@@ -112,14 +101,57 @@ def one_third_octaves(sr: int, frame_len: int, num_bands: int, lcf):
         # Assign to the octave band matrix
         obm[band, dft_bin_l_idx:dft_bin_h_idx] = 1
 
-    print(obm.shape, obm)
-
-    # Set NumPy print options to display numbers without scientific notation
-    print("Center Frequencies: ", cfs, len(cfs))
-    print("Upper Band Edges: ", ube, len(ube))
-    print("Lower Band Edges: ", lbe, len(lbe))
-
     return obm, cfs
+
+
+# STUB
+def remove_silent_frames(clean_audio, spin_audio, dyn_range, frame_len, overlap):
+    """
+    Removes silent frames from clean and spin audio.
+    Removes all frames in both signals in which the energy in clean speech signal is lower than 40dB.
+
+    Arguments:
+        clean_audio: clean speech (target_anechoic)
+        spin_audio: Speech-in-Noise
+        dyn_range (int): Speech dynamic range
+        frame_len (int): Number of samples in a frame of signal
+        overlap (int): Number of samples in overlap
+
+    Returns:
+        (clean_audio, spin_audio) (np.ndarray, np.ndarray): 
+        Clean and Spin audio after removing silent frames
+    """
+    # Create Hann window mask
+    hann_window = np.hanning(frame_len) # REVIEW - Should it be frame_len + 2? np.hanning(framelen + 2)[1:-1]?
+    
+    # Create an array of frames for both clean and spin audio
+    clean_frames = []
+    spin_frames = []
+    for i in range(0, len(clean_audio) - frame_len, overlap): # 0 128 256 384 ...
+        clean_frames.append(hann_window * clean_audio[i : i+frame_len])
+        spin_frames.append(hann_window * spin_audio[i : i+frame_len])
+    # Convert list to np.ndarray
+    clean_frames = np.array(clean_frames)
+    spin_frames = np.array(spin_frames)
+
+    # Compute energy in dB for clean audio frames
+    EPS = np.finfo("float").eps # Epsilon, smallest positive float number.
+    clean_energies = 20 * np.log10(np.linalg.norm(clean_frames, axis=1) + EPS)
+    # The 20 * log10 is to convert energy to dB. axis=1 is to compute energy of each frame.
+    # The norm is to compute energy of each frame. The EPS is to prevent log(0).    
+
+    # Create mask to remove silent frames
+    mask = clean_energies > np.max(clean_energies) - dyn_range  # REVIEW - Make sure inequality is correct
+
+    # Use mask on both clean and spin audio frames
+    clean_frames = clean_frames[mask]
+    spin_frames = spin_frames[mask]
+
+    # TODO - Reconstruct clean and spin audio
+
+
+    pass
+    # return clean_audio, spin_audio
 
 
 def calc_RMSE(stoi_arr, listeners_arr) -> float:
