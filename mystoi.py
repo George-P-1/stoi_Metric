@@ -1,5 +1,7 @@
 # Import libraries
 import numpy as np
+import torch
+from scipy.signal import stft
 
 # ------------------------------------
 # NOTE - How to calculate STOI?
@@ -53,6 +55,25 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     if SR != sampling_rate:
         raise Exception("Sampling rate is not {}".format(SR))
 
+    # TODO - Remove silent frames
+
+    # TF Decomposition
+    # Short-Time Fourier Transform on both signals - to obtain DFT bins
+    f_clean, t_clean, clean_stft = stft(clean_audio, sampling_rate, 'hann', TRUE_FRAME_LEN, OVERLAP, FRAME_LEN)
+    f_spin, t_spin, spin_stft = stft(spin_audio, sampling_rate, 'hann', TRUE_FRAME_LEN, OVERLAP, FRAME_LEN)
+
+    # Get the one-third octave band matrix and center frequencies
+    obm, cfs = one_third_octaves(sampling_rate, FRAME_LEN, OCTAVE_BANDS, LCF)
+
+    # Group DFT bins into one-third octave bands
+    # Using Equation 1 from the paper - Apply OBM boolean matrix to spectrogram (STFT)
+    clean_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(clean_stft)))))
+    spin_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(spin_stft)))))
+
+    #REMOVE_LATER
+    print(clean_stft.shape, spin_stft.shape)
+    # print(clean_tf_units.shape, spin_tf_units.shape)
+
     pass
 
 
@@ -105,7 +126,7 @@ def one_third_octaves(sr: int, frame_len: int, num_bands: int, lcf):
 
 
 # STUB
-def remove_silent_frames(clean_audio, spin_audio, dyn_range, frame_len, overlap):
+def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, overlap):
     """
     Removes silent frames from clean and spin audio.
     Removes all frames in both signals in which the energy in clean speech signal is lower than 40dB.
@@ -122,14 +143,14 @@ def remove_silent_frames(clean_audio, spin_audio, dyn_range, frame_len, overlap)
         Clean and Spin audio after removing silent frames
     """
     # Create Hann window mask
-    hann_window = np.hanning(frame_len) # REVIEW - Should it be frame_len + 2? np.hanning(framelen + 2)[1:-1]?
+    hann_window = np.hanning(true_frame_len) # REVIEW - Should it be frame_len + 2? np.hanning(framelen + 2)[1:-1]?
     
     # Create an array of frames for both clean and spin audio
     clean_frames = []
     spin_frames = []
-    for i in range(0, len(clean_audio) - frame_len, overlap): # 0 128 256 384 ...
-        clean_frames.append(hann_window * clean_audio[i : i+frame_len])
-        spin_frames.append(hann_window * spin_audio[i : i+frame_len])
+    for i in range(0, len(clean_audio) - true_frame_len, overlap): # 0 128 256 384 ...
+        clean_frames.append(hann_window * clean_audio[i : i+true_frame_len])
+        spin_frames.append(hann_window * spin_audio[i : i+true_frame_len])
     # Convert list to np.ndarray
     clean_frames = np.array(clean_frames)
     spin_frames = np.array(spin_frames)

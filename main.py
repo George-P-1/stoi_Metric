@@ -61,36 +61,36 @@ def main(path_data: DictConfig) -> None:
                 raise Exception("Target audio is not stereo.")
 
             # NOTE - Plots
-            # %%
-            # Spectrograms
-            plt.figure("Spectrograms (Mono Signals)")
-            # Plot before resampling
-            plt.subplot(2,2,1)
-            plotter.plot_spectrogram(spin_mono, spin_sr, 'Spectrogram of SPIN (before resampling)')
-            plt.subplot(2,2,2)
-            plotter.plot_spectrogram(target_mono, target_sr, 'Spectrogram of Target (before resampling)')
-            # Plot after resampling
-            plt.subplot(2,2,3)
-            plotter.plot_spectrogram(spin_resampled_mono, new_sr, 'Spectrogram of SPIN (after resampling)')
-            plt.subplot(2,2,4)
-            plotter.plot_spectrogram(target_resampled_mono, new_sr, 'Spectrogram of Target (after resampling)')
-            plt.tight_layout()  # Adjust spacing
+            if False:    # REMOVE_LATER
+                # Spectrograms
+                plt.figure("Spectrograms (Mono Signals)")
+                # Plot before resampling
+                plt.subplot(2,2,1)
+                plotter.plot_spectrogram(spin_mono, spin_sr, 'Spectrogram of SPIN (before resampling)')
+                plt.subplot(2,2,2)
+                plotter.plot_spectrogram(target_mono, target_sr, 'Spectrogram of Target (before resampling)')
+                # Plot after resampling
+                plt.subplot(2,2,3)
+                plotter.plot_spectrogram(spin_resampled_mono, new_sr, 'Spectrogram of SPIN (after resampling)')
+                plt.subplot(2,2,4)
+                plotter.plot_spectrogram(target_resampled_mono, new_sr, 'Spectrogram of Target (after resampling)')
+                plt.tight_layout()  # Adjust spacing
 
-            # Signals in amplitude-time
-            plt.figure("Amplitude-Time (Mono Signals)")
-            # Plot before resampling
-            plt.subplot(2,2,1)
-            plotter.plot_regular(spin_mono, len(spin_mono), spin_sr, 'SPIN (before resampling)')
-            plt.subplot(2,2,2)
-            plotter.plot_regular(target_mono, len(target_mono), target_sr, 'Target (before resampling)')
-            # Plot after resampling
-            plt.subplot(2,2,3)
-            plotter.plot_regular(spin_resampled_mono, len(spin_resampled_mono), new_sr, 'SPIN (after resampling)')
-            plt.subplot(2,2,4)
-            plotter.plot_regular(target_resampled_mono, len(target_resampled_mono), new_sr, 'Target (after resampling)')
-            plt.tight_layout()  # Adjust spacing
+                # Signals in amplitude-time
+                plt.figure("Amplitude-Time (Mono Signals)")
+                # Plot before resampling
+                plt.subplot(2,2,1)
+                plotter.plot_regular(spin_mono, len(spin_mono), spin_sr, 'SPIN (before resampling)')
+                plt.subplot(2,2,2)
+                plotter.plot_regular(target_mono, len(target_mono), target_sr, 'Target (before resampling)')
+                # Plot after resampling
+                plt.subplot(2,2,3)
+                plotter.plot_regular(spin_resampled_mono, len(spin_resampled_mono), new_sr, 'SPIN (after resampling)')
+                plt.subplot(2,2,4)
+                plotter.plot_regular(target_resampled_mono, len(target_resampled_mono), new_sr, 'Target (after resampling)')
+                plt.tight_layout()  # Adjust spacing
 
-            plt.show()
+                plt.show()
 
             # NOTE - Play audio files (before and after resampling)
             if False:     # REMOVE_LATER - Change Boolean to turn on/off playing files. 
@@ -112,7 +112,8 @@ def main(path_data: DictConfig) -> None:
                 sd.play(target_resampled_mono, new_sr)
                 sd.wait()
 
-            # %%
+            # TODO - Remove first 2 seconds from both signals cuz of silence in the clean signal
+
 
             # SECTION - Compute STOI Metric using pystoi
             # Directly using pystoi library to see how stoi monotonic output looks like.
