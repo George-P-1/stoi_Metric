@@ -1,3 +1,28 @@
+"""
+STOI
+====
+
+
+How to use?
+-----------
+
+
+
+Dependencies
+------------
+    1. Numpy
+    2. Scipy
+
+
+References
+----------
+[1] C.H.Taal, R.C.Hendriks, R.Heusdens, J.Jensen 'An Algorithm for
+    Intelligibility Prediction of Time-Frequency Weighted Noisy Speech',
+    IEEE Transactions on Audio, Speech, and Language Processing, 2011.
+
+
+"""
+
 # Import libraries
 import numpy as np
 import torch
@@ -5,9 +30,20 @@ from scipy.signal import stft
 
 # ------------------------------------
 # NOTE - How to calculate STOI?
+# Core steps: 
+#   1. Remove Silent Frames
+#   2. STFT
+#   3. Convert Linear Frequency data to 1/3 Octave Bands data
+#   4. Clip the spin audio based on clean audio peaks
+#   5. Normalize
+#   6. Compare to get intermediate intelligibility measure 
+#   7. Average the correlation coefficients to get final STOI value
+#
 # Resample audios to 10kHz
 #           Now audio is in amplitude-time domain
 # TF-decompose the signals, i.e. make them in time frequency domain. using moving Hann window for both clean and spin audio. (Hann, 256 samples, 512, 50%, sfft)
+#           When zero padding the frame (done within stft function), all the padding can be done after the the 256 length frame. Instead of 128 on both sides.
+#           So this means that, u choose 256 samples from the signal and then apply Hann window and then do stft. Then choose the next frame of 256 samples which overlaps 128 samples with the previous frame. 
 #           Now audio is in time-frequency domain
 # Remove silent frames - find frame with max energy. Then remove the frames with energy less than 40dB relative to max energy frame. 
 # Reconstruct clean and spin audio after the previous step
@@ -24,13 +60,13 @@ SR = 10000                  # Sampling rate/frequency
 # Preprocessing (TF-Decomposition) - Silent frame removal and frames related
 TRUE_FRAME_LEN = 256        # number of samples of Hann-windowed frames
 OVERLAP = 0.5*256           # 50% overlap =128 samples both sides of frame. So padding upto 512 samples 
-FRAME_LEN = 512             # =256 + OVERLAP * 2
+FRAME_LEN = 512             # =256 + OVERLAP * 2. This frame length is used for STFT
 ENERGY_RANGE = 40           # Speech dynamic range
 # one-third octave related
 OCTAVE_BANDS = 15           # Number of one-third octave bands used
 LCF = 150                   # lowest center frequency. Estimates higher c.f. is approx. 4.3kHz
 # Comparison related
-FRAME_TIME = 386            # 386 or 384 milliseconds. Paper shows both numbers in first few pages.
+FRAME_TIME = 384            # 386 or 384 milliseconds. Paper shows both numbers in first few pages.
 
 # SECTION - Functions
 
@@ -177,11 +213,11 @@ def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, ove
 
 def calc_RMSE(stoi_arr, listeners_arr) -> float:
     """
-    Calculates Root Mean Squared Error value when given a list of computed STOI values and list of actual listeners scores. 
+    Calculates Root Mean Squared Error value when given a list of computed STOI values and list of actual listeners scores (true intelligibility). 
     
     Arguments:
         stoi_arr (list[float] or np.ndarray): A list of STOI values
-        listeners_arr (list[float] or np.ndarray): A list of listeners scores from clarity JSON file
+        listeners_arr (list[float] or np.ndarray): A list of true intelligibility values from clarity JSON file
 
     Returns:
         float: RMSE value

@@ -40,6 +40,7 @@ def main(path_data: DictConfig) -> None:
             target_resampled = resample(target, int(len(target) * new_sr / target_sr))
             
             if True:    # REMOVE_LATER
+                print("Total number of scenes in JSON file:", len(ref_json))    # REMOVE_LATER
                 print("Info about Current SPIN File:\n", ref_json[scene_index], "\n")    # REMOVE_LATER
                 print("Paths to current audio files:\n", spin_file_path, "\n", target_file_path, "\n")  # REMOVE_LATER
                 print(f"Number of samples of spin audio is {len(spin)} and sample rate is {ref_json[scene_index]['signal']} is {spin_sr} and shape is {spin.shape}.")   # REMOVE_LATER
