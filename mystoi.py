@@ -25,7 +25,6 @@ References
 
 # Import libraries
 import numpy as np
-import torch
 from scipy.signal import stft
 
 # ------------------------------------
@@ -37,11 +36,11 @@ from scipy.signal import stft
 #   4. Clip the spin audio based on clean audio peaks
 #   5. Normalize
 #   6. Compare to get intermediate intelligibility measure 
-#   7. Average the correlation coefficients to get final STOI value
+#   7. Average the intermediate intelligibility measure over all bands and frames to get final STOI value
 #
 # Resample audios to 10kHz
 #           Now audio is in amplitude-time domain
-# TF-decompose the signals, i.e. make them in time frequency domain. using moving Hann window for both clean and spin audio. (Hann, 256 samples, 512, 50%, sfft)
+# TF-decompose the signals, i.e. make them in time frequency domain. using moving Hann window for both clean and spin audio. (Hann, 256 samples, 512, 50%, stft)
 #           When zero padding the frame (done within stft function), all the padding can be done after the the 256 length frame. Instead of 128 on both sides.
 #           So this means that, u choose 256 samples from the signal and then apply Hann window and then do stft. Then choose the next frame of 256 samples which overlaps 128 samples with the previous frame. 
 #           Now audio is in time-frequency domain
@@ -67,6 +66,8 @@ OCTAVE_BANDS = 15           # Number of one-third octave bands used
 LCF = 150                   # lowest center frequency. Estimates higher c.f. is approx. 4.3kHz
 # Comparison related
 FRAME_TIME = 384            # 386 or 384 milliseconds. Paper shows both numbers in first few pages.
+ANALYSIS_FRAME_LEN = 30     # Number of frames which equals an analysis window of 384ms
+EPS = np.finfo("float").eps # Epsilon, smallest positive float number.
 
 # SECTION - Functions
 
@@ -91,24 +92,65 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     if SR != sampling_rate:
         raise Exception("Sampling rate is not {}".format(SR))
 
-    # TODO - Remove silent frames
+    # TODO - NOTE - Remove silent frames
+    # clean_audio, spin_audio = remove_silent_frames(clean_audio, spin_audio, ENERGY_RANGE, TRUE_FRAME_LEN, OVERLAP)
 
     # TF Decomposition
-    # Short-Time Fourier Transform on both signals - to obtain DFT bins
+    # NOTE - Short-Time Fourier Transform on both signals - to obtain DFT bins
     f_clean, t_clean, clean_stft = stft(clean_audio, sampling_rate, 'hann', TRUE_FRAME_LEN, OVERLAP, FRAME_LEN)
     f_spin, t_spin, spin_stft = stft(spin_audio, sampling_rate, 'hann', TRUE_FRAME_LEN, OVERLAP, FRAME_LEN)
 
     # Get the one-third octave band matrix and center frequencies
     obm, cfs = one_third_octaves(sampling_rate, FRAME_LEN, OCTAVE_BANDS, LCF)
 
-    # Group DFT bins into one-third octave bands
+    # NOTE - Group DFT bins into one-third octave bands
     # Using Equation 1 from the paper - Apply OBM boolean matrix to spectrogram (STFT)
     clean_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(clean_stft)))))
     spin_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(spin_stft)))))
 
-    #REMOVE_LATER
-    print(clean_stft.shape, spin_stft.shape)
-    # print(clean_tf_units.shape, spin_tf_units.shape)
+    #REMOVE_LATER - Print shapes
+    print("Octave Band Matrix shape: {} and Center frequencies vector shape: {}".format(obm.shape, cfs.shape))
+    # Octave Band Matrix shape: (15, 257) and Center frequencies vector shape: (15,)
+    # REVIEW - 15 is the number of octave bands and 257 is the number of DFT bins. So there are 257 DFT bins in each octave band.
+    print("Clean_stft shape: {} and spin_stft shape: {}".format(clean_stft.shape, spin_stft.shape))
+    # Clean_stft shape: (257, 481) and spin_stft shape: (257, 481)
+    # REVIEW - 257 is the number of DFT bins and 481 is the length of time axis. So there is a spectrogram of 257x481 for each signal and so each point in time has 257 DFT bins.
+    print("Clean_tf_units shape: {} and spin_tf_units shape: {}".format(clean_tf_units.shape, spin_tf_units.shape))
+    # Clean_tf_units shape: (15, 481) and spin_tf_units shape: (15, 481)
+    # REVIEW - 15 is the number of octave bands and 481 is the length of time axis.
+    # NOTE - The value 481 (the second dimension of the tf_units matrix) depends on the audio signal. 481 is when scene_index = 4.
+    
+    # NOTE - Create 3D matrices of temporal envelopes (analysis windows) for clean and spin audio
+    # Use a bigger frame of 30 frames (within 481) and 15 bands which equals an analysis window of 384ms
+    # Use Equation 2 from the paper - short-time temporal envelope
+    clean_an_windows = []
+    spin_an_windows = []
+    for m in range(ANALYSIS_FRAME_LEN, clean_tf_units.shape[1] + 1): # Go through the length of time axis using frame. The +1 is to include the last point since for example, range(1, 10) doesn't include 10.
+        clean_an_win = clean_tf_units[:, m - ANALYSIS_FRAME_LEN : m]  # Analysis window for clean audio
+        spin_an_win = spin_tf_units[:, m - ANALYSIS_FRAME_LEN : m]   # Analysis window for spin audio  
+        # There is no +1 like in Equation 2 like m - ANALYSIS_FRAME_LEN +1: m, because the index 'm' is not included in the notation [0:m] so [0:30] would have 30 elements not 31.  
+        clean_an_windows.append(clean_an_win)
+        spin_an_windows.append(spin_an_win)
+        # REMOVE_LATER
+        print("index of start of big frame: {}".format(m - ANALYSIS_FRAME_LEN)) # 30
+        print("total iterations of loop: {}".format(len(range(ANALYSIS_FRAME_LEN, clean_tf_units.shape[1] + 1)))) # 452
+        print("m: {}".format(m))
+        print("Clean analysis window shape: {} and spin analysis window shape: {}".format(clean_an_win.shape, spin_an_win.shape))
+        # Clean analysis window shape: (15, 30) and spin analysis window shape: (15, 30)
+    clean_an_windows = np.array(clean_an_windows)
+    spin_an_windows = np.array(spin_an_windows)
+
+    # REMOVE_LATER - Print shapes
+    print("Clean analysis windows shape: {} and spin analysis windows shape: {}".format(clean_an_windows.shape, spin_an_windows.shape))
+    # Clean analysis windows shape: (452, 15, 30) and spin analysis windows shape: (452, 15, 30)
+    
+    # TODO - NOTE - Clip the spin audio based on clean audio peaks
+
+    # TODO - NOTE - Normalize
+
+    # TODO - Compare to get intermediate intelligibility measure
+
+    # TODO - Average the intermediate intelligibility measure over all bands and frames to get final STOI value
 
     pass
 
@@ -125,6 +167,17 @@ def one_third_octaves(sr: int, frame_len: int, num_bands: int, lcf):
 
     Returns:
         (obm, cf) (np.ndarray, np.ndarray): Octave Band Matrix and Center frequencies
+
+    """
+
+    """ # REMOVE_LATER
+    Example of Octave Band Matrix (obm) for 3 bands and 7 bins:
+    obm = [
+    [0 1 1 1 0 0 0]  # Band 1 (covers bins 1–3)
+    [0 0 1 1 1 0 0]  # Band 2 (slight overlap with Band 1, bins 2–4)
+    [0 0 0 1 1 1 0]  # Band 3 (covers bins 4–6)
+    ]
+    Overlaps are possible in some 1/3 octave cases. I assume it depends on the choosing of lowest center frequency.
     """
     octave_kind = 3 # third octave
     
@@ -192,7 +245,6 @@ def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, ove
     spin_frames = np.array(spin_frames)
 
     # Compute energy in dB for clean audio frames
-    EPS = np.finfo("float").eps # Epsilon, smallest positive float number.
     clean_energies = 20 * np.log10(np.linalg.norm(clean_frames, axis=1) + EPS)
     # The 20 * log10 is to convert energy to dB. axis=1 is to compute energy of each frame.
     # The norm is to compute energy of each frame. The EPS is to prevent log(0).    

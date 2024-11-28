@@ -38,6 +38,8 @@ def main(path_data: DictConfig) -> None:
             # REVIEW - Can use scipy (resample or decimate functions) or librosa library. Some issue with scipy using only frequency domain or something like that.
             spin_resampled = resample(spin, int(len(spin) * new_sr / spin_sr))   # NOTE - current_no_of_samples / current_sampling_rate is the duration of audio signal
             target_resampled = resample(target, int(len(target) * new_sr / target_sr))
+
+            # !SECTION - Resampling Done
             
             if True:    # REMOVE_LATER
                 print("Total number of scenes in JSON file:", len(ref_json))    # REMOVE_LATER
@@ -125,6 +127,7 @@ def main(path_data: DictConfig) -> None:
             print(f"STOI value for intelligibility of Left Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
             stoi_val = pystoi.stoi(target_resampled_mono, spin_resampled_mono, new_sr)
             print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            # !SECTION
 
             # SECTION - Implement STOI Metric
             print("----------mystoi values below----------\n")
@@ -135,6 +138,7 @@ def main(path_data: DictConfig) -> None:
             print(f"STOI value for intelligibility of Left Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
             stoi_val = mystoi.compute_stoi(target_resampled_mono, spin_resampled_mono, new_sr)
             print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            # !SECTION
 
 
         ref_file.close()
@@ -143,6 +147,7 @@ def main(path_data: DictConfig) -> None:
     finally:
         print(f'Finished processing JSON file.')
 
+# !SECTION Main code ends here
 
 if __name__ == '__main__':
     main()
