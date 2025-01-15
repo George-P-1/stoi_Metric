@@ -68,6 +68,8 @@ LCF = 150                   # lowest center frequency. Estimates higher c.f. is 
 FRAME_TIME = 384            # 386 or 384 milliseconds. Paper shows both numbers in first few pages.
 ANALYSIS_FRAME_LEN = 30     # Number of frames which equals an analysis window of 384ms
 EPS = np.finfo("float").eps # Epsilon, smallest positive float number.
+# Clipping
+BETA = -15                  # Lower signal-to-distortion (SDR) bound in decibels (dB)
 
 # SECTION - Functions
 
@@ -143,13 +145,31 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     clean_an_windows = np.array(clean_an_windows)
     spin_an_windows = np.array(spin_an_windows)
 
-    if True: # REMOVE_LATER - Print shapes
+    if False: # REMOVE_LATER - Print shapes
         print("Clean analysis windows shape: {} and spin analysis windows shape: {}".format(clean_an_windows.shape, spin_an_windows.shape))
         # Clean analysis windows shape: (452, 15, 30) and spin analysis windows shape: (452, 15, 30)
     
-    # TODO - NOTE - Clip the spin audio based on clean audio peaks
-
     # TODO - NOTE - Normalize
+    normalization_consts = (
+        np.linalg.norm(clean_an_windows, axis=2, keepdims=True) /
+        (np.linalg.norm(spin_an_windows, axis=2, keepdims=True) + EPS))
+        
+    spin_an_windows_normalized = spin_an_windows * normalization_consts
+    
+    # TODO - NOTE - Clip the spin audio based on clean audio peaks
+    clip_value = 10 ** (-BETA / 20) # Convert from dB to linear scale.
+    spin_an_windows_clipped = np.minimum(spin_an_windows_normalized, clean_an_windows * (1 + clip_value))
+    # NOTE - I think the 1 in (1+clip_value) is a safe threshold in which speech is expected to be present and clearly heard. Adjusting this value could affect prediction.
+
+    # REVIEW - There is another equation that says that the SDR of clean speech is required to be greater than the SDR of the noise. But it isn't implemented in pystoi. Maybe add it as an if condition or mention in documentation.
+    
+    if True:
+        print("Normalization constants shape: {}".format(normalization_consts.shape))
+        # Normalization constants shape: (452, 15, 1)
+        print("Spin analysis windows normalized shape: {}".format(spin_an_windows_normalized.shape))
+        # Spin analysis windows normalized shape: (452, 15, 30)
+        print("Spin analysis windows clipped shape: {}".format(spin_an_windows_clipped.shape))
+        # Spin analysis windows clipped shape: (452, 15, 30)
 
     # TODO - Compare to get intermediate intelligibility measure
 
@@ -253,7 +273,7 @@ def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, ove
     # The norm is to compute energy of each frame. The EPS is to prevent log(0).    
 
     # Create mask to remove silent frames
-    mask = clean_energies > np.max(clean_energies) - dyn_range  # REVIEW - Make sure inequality is correct
+    mask = clean_energies > np.max(clean_energies) - dyn_range  # REVIEW - Make sure inequality is correct. In pystoi implementation, it is < 0, with everything else on the other side.
 
     # Use mask on both clean and spin audio frames
     clean_frames = clean_frames[mask]

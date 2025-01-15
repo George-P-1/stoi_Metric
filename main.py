@@ -134,8 +134,10 @@ def main(path_data: DictConfig) -> None:
             
             stoi_val = mystoi.compute_stoi(target_resampled[:,0], spin_resampled[:,0], new_sr)
             print(f"STOI value for intelligibility of Right Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            print("----------")
             stoi_val = mystoi.compute_stoi(target_resampled[:,1], spin_resampled[:,1], new_sr)
             print(f"STOI value for intelligibility of Left Ear SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
+            print("----------")
             stoi_val = mystoi.compute_stoi(target_resampled_mono, spin_resampled_mono, new_sr)
             print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.")
             # !SECTION
