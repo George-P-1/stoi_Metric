@@ -58,7 +58,7 @@ from scipy.signal import stft
 SR = 10000                  # Sampling rate/frequency
 # Preprocessing (TF-Decomposition) - Silent frame removal and frames related
 TRUE_FRAME_LEN = 256        # number of samples of Hann-windowed frames
-OVERLAP = 0.5*256           # 50% overlap =128 samples both sides of frame. So padding upto 512 samples 
+OVERLAP = int(0.5*256)      # 50% overlap =128 samples both sides of frame. So padding upto 512 samples 
 FRAME_LEN = 512             # =256 + OVERLAP * 2. This frame length is used for STFT
 ENERGY_RANGE = 40           # Speech dynamic range
 # one-third octave related
@@ -95,7 +95,7 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
         raise Exception("Sampling rate is not {}".format(SR))
 
     # TODO - NOTE - Remove silent frames
-    # clean_audio, spin_audio = remove_silent_frames(clean_audio, spin_audio, ENERGY_RANGE, TRUE_FRAME_LEN, OVERLAP)
+    clean_audio, spin_audio = remove_silent_frames(clean_audio, spin_audio, ENERGY_RANGE, TRUE_FRAME_LEN, OVERLAP)
 
     # TF Decomposition
     # NOTE - Short-Time Fourier Transform on both signals - to obtain DFT bins
@@ -110,7 +110,7 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     clean_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(clean_stft)))))
     spin_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(spin_stft)))))
 
-    if False:#REMOVE_LATER - Print shapes
+    if False: # REMOVE_LATER - Print shapes
         print("Clean audio shape: {} and spin audio shape: {}".format(clean_audio.shape, spin_audio.shape))
         # Clean audio shape: (61400,) and spin audio shape: (61400,)
         print("Octave Band Matrix shape: {} and Center frequencies vector shape: {}".format(obm.shape, cfs.shape))
@@ -193,7 +193,7 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     if J != OCTAVE_BANDS:
         raise Exception ("Error due to mismatch number of bands in computation of STOI value.")
     
-    if True: # REMOVE_LATER
+    if False: # REMOVE_LATER
         print("Spin intermediate shape: {} and clean intermediate shape: {}".format(spin_inter.shape, clean_inter.shape))
         # Spin intermediate shape: (452, 15, 30)  and clean intermediate shape: (452, 15, 30)
         print("Correlation matrix shape: {}".format(d_matrix.shape))
@@ -267,6 +267,78 @@ def one_third_octaves(sr: int, frame_len: int, num_bands: int, lcf):
 
 
 # STUB
+def reconstruct_signal(the_frames, overlap):
+    """
+    Reconstructs the signal from frames. 
+
+    Arguments:
+        the_frames (np.ndarray): Frames of signal
+        overlap (int): Number of samples in overlap
+
+    Returns:
+        np.ndarray: Reconstructed signal
+    """
+    # Shape of the frames matrix
+    num_frames, frame_len = the_frames.shape
+    
+    if True: # REMOVE_LATER
+        print("Number of frames: {} and frame length: {}".format(num_frames, frame_len))
+        # Number of frames: 179 and frame length: 256
+        print("the_frames shape: {}".format(the_frames.shape))
+        # the_frames shape: (179, 256)
+    
+    # Number of segments per frame. Basically each frame will span below number of segments.
+    overlaps_in_frame = -(-frame_len // overlap) # Divide and round up
+
+    print("Segments per frame: {}".format(overlaps_in_frame)) # REMOVE_LATER
+    # Segments per frame: 2
+
+    # Pad the frames - to ensure that reshaping doesn't break
+    signal = np.pad(the_frames, ((0, overlaps_in_frame), (0, overlaps_in_frame * overlap - frame_len)))
+
+    print("Signal shape: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape: (181, 256)
+
+    # Reshape - each of those frames become smaller frames of length 'overlap'
+    signal = signal.reshape((num_frames + overlaps_in_frame, overlaps_in_frame, overlap))
+    print("Signal shape after reshape: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after reshape: (181, 2, 128)
+
+    # Transpose dimensions so that signal.shape = (segments, frame+segments, hop)
+    signal = np.transpose(signal, [1, 0, 2])
+    print("Signal shape after transpose: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after transpose: (2, 181, 128)
+
+    # Reshape so that signal.shape = (segments * (frame+segments), hop)
+    signal = signal.reshape((-1, overlap))
+    print("Signal shape after reshape: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after reshape: (362, 128)
+
+    # Remove last n=overlaps_in_frame elements
+    signal = signal[:-overlaps_in_frame]
+    print("Signal shape after removing last n elements: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after removing last n elements: (360, 128)
+
+    # Reshape to (segments, frame+segments-1, hop)
+    signal = signal.reshape((overlaps_in_frame, num_frames + overlaps_in_frame - 1, overlap))
+    print("Signal shape after reshape: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after reshape: (2, 180, 128)
+    # This introduces a shift by one in all rows
+
+    # Sum overlapping rows column-wise to reconstruct the signal
+    signal = np.sum(signal, axis=0)
+    print("Signal shape after summing overlapping rows: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after summing overlapping rows: (180, 128)
+
+    # find original length of signal
+    end = (len(the_frames) - 1) * overlap + frame_len
+    signal = signal.reshape(-1)[:end]
+    print("Signal shape after reshaping: {}".format(signal.shape)) # REMOVE_LATER
+    # Signal shape after reshaping: (23040,)
+
+    return signal
+
+# STUB
 def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, overlap):
     """
     Removes silent frames from clean and spin audio.
@@ -308,11 +380,11 @@ def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, ove
     clean_frames = clean_frames[mask]
     spin_frames = spin_frames[mask]
 
-    # TODO - Reconstruct clean and spin audio
+    # Reconstruct clean and spin audio
+    clean_no_sil = reconstruct_signal(clean_frames, overlap)
+    spin_no_sil = reconstruct_signal(spin_frames, overlap)
 
-
-    pass
-    # return clean_audio, spin_audio
+    return clean_no_sil, spin_no_sil
 
 
 def calc_RMSE(stoi_arr, listeners_arr) -> float:
