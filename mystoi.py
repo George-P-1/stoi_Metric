@@ -108,17 +108,20 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     clean_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(clean_stft)))))
     spin_tf_units = np.sqrt(np.matmul(obm, (np.square(np.abs(spin_stft)))))
 
-    #REMOVE_LATER - Print shapes
-    print("Octave Band Matrix shape: {} and Center frequencies vector shape: {}".format(obm.shape, cfs.shape))
-    # Octave Band Matrix shape: (15, 257) and Center frequencies vector shape: (15,)
-    # REVIEW - 15 is the number of octave bands and 257 is the number of DFT bins. So there are 257 DFT bins in each octave band.
-    print("Clean_stft shape: {} and spin_stft shape: {}".format(clean_stft.shape, spin_stft.shape))
-    # Clean_stft shape: (257, 481) and spin_stft shape: (257, 481)
-    # REVIEW - 257 is the number of DFT bins and 481 is the length of time axis. So there is a spectrogram of 257x481 for each signal and so each point in time has 257 DFT bins.
-    print("Clean_tf_units shape: {} and spin_tf_units shape: {}".format(clean_tf_units.shape, spin_tf_units.shape))
-    # Clean_tf_units shape: (15, 481) and spin_tf_units shape: (15, 481)
-    # REVIEW - 15 is the number of octave bands and 481 is the length of time axis.
-    # NOTE - The value 481 (the second dimension of the tf_units matrix) depends on the audio signal. 481 is when scene_index = 4.
+    if False:#REMOVE_LATER - Print shapes
+        print("Clean audio shape: {} and spin audio shape: {}".format(clean_audio.shape, spin_audio.shape))
+        # Clean audio shape: (61400,) and spin audio shape: (61400,)
+        print("Octave Band Matrix shape: {} and Center frequencies vector shape: {}".format(obm.shape, cfs.shape))
+        # Octave Band Matrix shape: (15, 257) and Center frequencies vector shape: (15,)
+        # REVIEW - 15 is the number of octave bands and 257 is the number of DFT bins. So there are 257 DFT bins in each octave band.
+        print("Clean_stft shape: {} and spin_stft shape: {}".format(clean_stft.shape, spin_stft.shape))
+        # Clean_stft shape: (257, 481) and spin_stft shape: (257, 481)
+        # REVIEW - 257 is the number of DFT bins and 481 is the length of time axis. So there is a spectrogram of 257x481 for this (scene_index=4) signal and so each point in time has 257 DFT bins.
+        # NOTE - 481 is the number of frames taken from the time axis of the audio signal. So fourier transform is done on 481 frames of the audio signal.
+        print("Clean_tf_units shape: {} and spin_tf_units shape: {}".format(clean_tf_units.shape, spin_tf_units.shape))
+        # Clean_tf_units shape: (15, 481) and spin_tf_units shape: (15, 481)
+        # REVIEW - 15 is the number of octave bands and 481 is the length of time axis.
+        # NOTE !!!! - The value 481 (the second dimension of the tf_units matrix) depends on the audio signal. 481 is when scene_index = 4.
     
     # NOTE - Create 3D matrices of temporal envelopes (analysis windows) for clean and spin audio
     # Use a bigger frame of 30 frames (within 481) and 15 bands which equals an analysis window of 384ms
@@ -131,18 +134,18 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
         # There is no +1 like in Equation 2 like m - ANALYSIS_FRAME_LEN +1: m, because the index 'm' is not included in the notation [0:m] so [0:30] would have 30 elements not 31.  
         clean_an_windows.append(clean_an_win)
         spin_an_windows.append(spin_an_win)
-        # REMOVE_LATER
-        print("index of start of big frame: {}".format(m - ANALYSIS_FRAME_LEN)) # 30
-        print("total iterations of loop: {}".format(len(range(ANALYSIS_FRAME_LEN, clean_tf_units.shape[1] + 1)))) # 452
-        print("m: {}".format(m))
-        print("Clean analysis window shape: {} and spin analysis window shape: {}".format(clean_an_win.shape, spin_an_win.shape))
-        # Clean analysis window shape: (15, 30) and spin analysis window shape: (15, 30)
+        if False: # REMOVE_LATER
+            print("index of start of big frame: {}".format(m - ANALYSIS_FRAME_LEN)) # 0 at start of loop and at end 451
+            print("total iterations of loop: {}".format(len(range(ANALYSIS_FRAME_LEN, clean_tf_units.shape[1] + 1)))) # 452
+            print("m: {}".format(m)) # at start of loop its 30, and ends at 481
+            print("Clean analysis window shape: {} and spin analysis window shape: {}".format(clean_an_win.shape, spin_an_win.shape))
+            # Clean analysis window shape: (15, 30) and spin analysis window shape: (15, 30)
     clean_an_windows = np.array(clean_an_windows)
     spin_an_windows = np.array(spin_an_windows)
 
-    # REMOVE_LATER - Print shapes
-    print("Clean analysis windows shape: {} and spin analysis windows shape: {}".format(clean_an_windows.shape, spin_an_windows.shape))
-    # Clean analysis windows shape: (452, 15, 30) and spin analysis windows shape: (452, 15, 30)
+    if True: # REMOVE_LATER - Print shapes
+        print("Clean analysis windows shape: {} and spin analysis windows shape: {}".format(clean_an_windows.shape, spin_an_windows.shape))
+        # Clean analysis windows shape: (452, 15, 30) and spin analysis windows shape: (452, 15, 30)
     
     # TODO - NOTE - Clip the spin audio based on clean audio peaks
 
