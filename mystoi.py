@@ -145,25 +145,29 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
     clean_an_windows = np.array(clean_an_windows)
     spin_an_windows = np.array(spin_an_windows)
 
-    if False: # REMOVE_LATER - Print shapes
+    if False: # REMOVE_LATER
         print("Clean analysis windows shape: {} and spin analysis windows shape: {}".format(clean_an_windows.shape, spin_an_windows.shape))
         # Clean analysis windows shape: (452, 15, 30) and spin analysis windows shape: (452, 15, 30)
     
-    # TODO - NOTE - Normalize
+    # NOTE - Normalize and clipping the spin audio based on clean audio
+    # Use Equation 3 from the paper
+    # Normalization
     normalization_consts = (
         np.linalg.norm(clean_an_windows, axis=2, keepdims=True) /
         (np.linalg.norm(spin_an_windows, axis=2, keepdims=True) + EPS))
-        
+    # axis=2 means 3rd dimension. In this case that is time.
+    # The keepdims=True is to keep the dimensions of the result same as the input. 
+    
     spin_an_windows_normalized = spin_an_windows * normalization_consts
     
-    # TODO - NOTE - Clip the spin audio based on clean audio peaks
+    # Clipping
     clip_value = 10 ** (-BETA / 20) # Convert from dB to linear scale.
     spin_an_windows_clipped = np.minimum(spin_an_windows_normalized, clean_an_windows * (1 + clip_value))
     # NOTE - I think the 1 in (1+clip_value) is a safe threshold in which speech is expected to be present and clearly heard. Adjusting this value could affect prediction.
 
-    # REVIEW - There is another equation that says that the SDR of clean speech is required to be greater than the SDR of the noise. But it isn't implemented in pystoi. Maybe add it as an if condition or mention in documentation.
+    # REVIEW - There is another equation (Eq 5) that says that the SDR of clean speech is required to be greater than the SDR of the noise. But it isn't implemented in pystoi. Maybe add it as an if condition or mention in documentation.
     
-    if True:
+    if False: # REMOVE_LATER
         print("Normalization constants shape: {}".format(normalization_consts.shape))
         # Normalization constants shape: (452, 15, 1)
         print("Spin analysis windows normalized shape: {}".format(spin_an_windows_normalized.shape))
@@ -171,11 +175,36 @@ def compute_stoi(clean_audio, spin_audio, sampling_rate: int) -> float:
         print("Spin analysis windows clipped shape: {}".format(spin_an_windows_clipped.shape))
         # Spin analysis windows clipped shape: (452, 15, 30)
 
-    # TODO - Compare to get intermediate intelligibility measure
+    # NOTE - Compare to get intermediate intelligibility measure
+    # Equation 5 from the paper - Sample Correlation Coefficient
+    # Centering Data (Subtract mean vectors)
+    spin_inter = spin_an_windows_clipped - np.mean(spin_an_windows_clipped, axis=2, keepdims=True)
+    clean_inter = clean_an_windows - np.mean(clean_an_windows, axis=2, keepdims=True)
+    # Normalize by dividing by their norms
+    # This results in all vectors having unit length with different directions.
+    spin_inter = spin_inter / (np.linalg.norm(spin_inter, axis=2, keepdims=True) + EPS)
+    clean_inter = clean_inter / (np.linalg.norm(clean_inter, axis=2, keepdims=True) + EPS)
+    # Correlation
+    d_matrix = clean_inter * spin_inter
 
-    # TODO - Average the intermediate intelligibility measure over all bands and frames to get final STOI value
+    J = clean_inter.shape[1]    # Number of bands
+    M = clean_inter.shape[0]    # Total number of frames
 
-    pass
+    if J != OCTAVE_BANDS:
+        raise Exception ("Error due to mismatch number of bands in computation of STOI value.")
+    
+    if True: # REMOVE_LATER
+        print("Spin intermediate shape: {} and clean intermediate shape: {}".format(spin_inter.shape, clean_inter.shape))
+        # Spin intermediate shape: (452, 15, 30)  and clean intermediate shape: (452, 15, 30)
+        print("Correlation matrix shape: {}".format(d_matrix.shape))
+        # Correlation matrix shape: (452, 15, 30)
+        print("Number of bands: {} and total number of frames: {}".format(J, M))
+        # Number of bands: 15 and total number of frames: 452
+
+    # NOTE - Average the correlation matrix over all bands and frames to get final STOI value
+    d = np.sum(d_matrix) / (J * M)
+
+    return d
 
 
 def one_third_octaves(sr: int, frame_len: int, num_bands: int, lcf):
