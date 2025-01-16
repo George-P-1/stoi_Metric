@@ -9,10 +9,15 @@ import sounddevice as sd
 import pystoi
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from datetime import datetime
 
 import plotter
 import mystoi
 
+
+# Generate timestamp
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
 
 # SECTION Main code here
 
@@ -27,6 +32,7 @@ def main(path_data: DictConfig) -> None:
             # SECTION - Loop over each scene in JSON file and compute STOI
             # Store STOI values for mystoi
             mystoi_scores = []  # List to hold STOI values
+            pystoi_scores = []  # List to hold pySTOI values
             for scene_index in range(len(ref_json)):
                 # scene_index = 1006 # REMOVE_LATER - for running only one scene
             
@@ -156,18 +162,20 @@ def main(path_data: DictConfig) -> None:
 
                 # SECTION - Compute STOI Metric using pystoi
                 # REMOVE_LATER
-                stoi_val = pystoi.stoi(target_resampled_mono, spin_resampled_mono, new_sr)
-                # print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.") # REMOVE_LATER
+                pystoi_val = pystoi.stoi(target_resampled_mono, spin_resampled_mono, new_sr)
+                # print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {pystoi_val}.") # REMOVE_LATER
                 # !SECTION
 
                 # SECTION - Implement STOI Metric
-                # stoi_val = mystoi.compute_stoi(target_resampled_mono, spin_resampled_mono, new_sr)
+                stoi_val = mystoi.compute_stoi(target_resampled_mono, spin_resampled_mono, new_sr)
                 # print("----------mystoi values below----------\n") # REMOVE_LATER
                 # print(f"STOI value for intelligibility of Mono SPIN signal {ref_json[scene_index]['signal']} is {stoi_val}.") # REMOVE_LATER
                 # !SECTION
 
-                # Store STOI values for mystoi
+                # Store computed STOI values to list
                 mystoi_scores.append(stoi_val)
+                pystoi_scores.append(pystoi_val)
+
                 print("current scene index:", scene_index) # REMOVE_LATER
                 # break  # REMOVE_LATER - for running only one scene
             #!SECTION
@@ -199,10 +207,23 @@ def main(path_data: DictConfig) -> None:
     #!SECTION
 
     # SECTION - Calculate RMSE
-    # TODO - Save mystoi_scores and true_scores to a csv file and calculate RMSE in different script
     rmse_val = mystoi.calc_RMSE(np.array(mystoi_scores), np.array(true_scores))
     print(f"RMSE value for STOI metric is {rmse_val}.")
     # !SECTION
+
+    # SECTION - Save mystoi_scores and true_scores to a csv file
+    # TODO - Save mystoi_scores and true_scores to a csv file and calculate RMSE in different script
+    mystoi_output_file = f"mystoi_scores_{timestamp}.csv"
+    mystoi_df = pd.DataFrame({"Scene_Index": range(len(mystoi_scores)), "STOI_Value": mystoi_scores})
+    mystoi_df.to_csv(mystoi_output_file, index=False)  # Save without the index column
+    print(f"mystoi_scores saved to {mystoi_output_file}")
+    # Save pystoi_scores to another CSV file
+    pystoi_output_file = f"pystoi_scores_{timestamp}.csv"
+    pystoi_df = pd.DataFrame({"Scene_Index": range(len(pystoi_scores)), "STOI_Value": pystoi_scores})
+    pystoi_df.to_csv(pystoi_output_file, index=False)  # Save without the index column
+    print(f"pystoi_scores saved to {pystoi_output_file}")
+    #!SECTION
+
 
 # !SECTION Main code ends here
 
