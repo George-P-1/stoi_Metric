@@ -294,22 +294,25 @@ def reconstruct_signal(the_frames, overlap):
     # Segments per frame: 2
 
     # Pad the frames - to ensure that reshaping doesn't break
+    # Pad so that length becomes overlaps_in_frame * overlap and add n=overlaps_in_frame frames
     signal = np.pad(the_frames, ((0, overlaps_in_frame), (0, overlaps_in_frame * overlap - frame_len)))
 
     print("Signal shape: {}".format(signal.shape)) # REMOVE_LATER
     # Signal shape: (181, 256)
 
-    # Reshape - each of those frames become smaller frames of length 'overlap'
+    # Reshape (modify dimensions) - each of those frames become smaller frames of length 'overlap'
+    # In this case those smaller 2 frames are of length 128
     signal = signal.reshape((num_frames + overlaps_in_frame, overlaps_in_frame, overlap))
     print("Signal shape after reshape: {}".format(signal.shape)) # REMOVE_LATER
     # Signal shape after reshape: (181, 2, 128)
 
-    # Transpose dimensions so that signal.shape = (segments, frame+segments, hop)
+    # Transpose (rearrange dimensions) of signal into (overlaps_in_frame, num_frames+overlaps_in_frame, overlap)
+    # After transposing, overlapping regions are aligned along a single axis (the row axis) so they can be summed later.
     signal = np.transpose(signal, [1, 0, 2])
     print("Signal shape after transpose: {}".format(signal.shape)) # REMOVE_LATER
     # Signal shape after transpose: (2, 181, 128)
 
-    # Reshape so that signal.shape = (segments * (frame+segments), hop)
+    # Reshape (modify dimensions again) so that signal.shape = (overlaps_in_frame * (num_frames+overlaps_in_frame), overlap)
     signal = signal.reshape((-1, overlap))
     print("Signal shape after reshape: {}".format(signal.shape)) # REMOVE_LATER
     # Signal shape after reshape: (362, 128)
@@ -332,6 +335,8 @@ def reconstruct_signal(the_frames, overlap):
 
     # find original length of signal
     end = (len(the_frames) - 1) * overlap + frame_len
+    print("End: {}".format(end)) # REMOVE_LATER
+    # End: 23040
     signal = signal.reshape(-1)[:end]
     print("Signal shape after reshaping: {}".format(signal.shape)) # REMOVE_LATER
     # Signal shape after reshaping: (23040,)
