@@ -17,7 +17,7 @@ import mystoi
 
 
 # Generate timestamp
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # Format: YYYYMMDD_HHMMSS
 
 # SECTION Main code here
 
@@ -188,28 +188,6 @@ def main(path_data: DictConfig) -> None:
     finally:
         print(f'Finished processing Test JSON file.')
     #!SECTION
-
-    # SECTION - Open result JSON file
-    try:
-        with open(path_data.test_result_path.result_ref_file, 'r') as res_file:
-            res_json = json.load(res_file)
-
-            # Add correctness scores to a list
-            true_scores = []
-
-            for res_index in range(len(res_json)):
-                true_scores.append(res_json[res_index]['correctness'])
-
-    except FileNotFoundError:
-        raise Exception(f'JSON file not found: {path_data.test_result_path.result_ref_file}')
-    finally:
-        print(f'Finished processing Result JSON file.')
-    #!SECTION
-
-    # SECTION - Calculate RMSE
-    rmse_val = mystoi.calc_RMSE(np.array(mystoi_scores), np.array(true_scores))
-    print(f"RMSE value for STOI metric is {rmse_val}.")
-    # !SECTION
 
     # SECTION - Save mystoi_scores and true_scores to a csv file
     # TODO - Save mystoi_scores and true_scores to a csv file and calculate RMSE in different script
