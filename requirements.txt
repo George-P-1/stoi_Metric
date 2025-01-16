@@ -1,0 +1,8 @@
+hydra-core
+omegaconf
+soundfile
+numpy
+scipy
+matplotlib
+sounddevice
+pystoi
