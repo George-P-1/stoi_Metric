@@ -31,7 +31,6 @@ def main(path_data: DictConfig) -> None:
             # SECTION - Loop over each scene in JSON file and compute STOI
             # Store STOI values for mystoi
             mystoi_scores = []  # List to hold STOI values
-            pystoi_scores = []  # List to hold pySTOI values
             for scene_index in range(len(ref_json)):
                 # scene_index = 1006 # for running only one scene
             
@@ -51,9 +50,7 @@ def main(path_data: DictConfig) -> None:
                 # Pad the shorter signal
                 if len(spin_resampled) < len(target_resampled): # pad spin
                     spin_resampled = np.pad(spin_resampled, (0, len(target_resampled) - len(spin_resampled)))
-                elif len(target_resampled) < len(spin_resampled): # pad target
-                    target_resampled = np.pad(target_resampled, (0, len(spin_resampled) - len(target_resampled)))
-                    print("Padding Target audio file.") # REVIEW - REMOVE_LATER maybe
+                # In CPC1 data, in the case of shorter signals, spin is always the shorter one. So no need to check whether to pad target.  
                 # !SECTION
                 
                 # SECTION - Convert stereo to mono and plot spectrograms and play audio
@@ -131,18 +128,12 @@ def main(path_data: DictConfig) -> None:
 
                 # !SECTION - End Loop
 
-                # SECTION - Compute STOI Metric using pystoi
-                # REMOVE_LATER
-                pystoi_val = pystoi.stoi(target_resampled_mono, spin_resampled_mono, new_sr)
-                # !SECTION
-
                 # SECTION - Implement STOI Metric
                 stoi_val = mystoi.compute_stoi(target_resampled_mono, spin_resampled_mono, new_sr)
                 # !SECTION
 
                 # Store computed STOI values to list
                 mystoi_scores.append(stoi_val)
-                pystoi_scores.append(pystoi_val)
 
                 # break  # for running only one scene
             #!SECTION
@@ -157,16 +148,11 @@ def main(path_data: DictConfig) -> None:
     #!SECTION
 
     # SECTION - Save mystoi_scores and true_scores to a csv file
-    # TODO - Save mystoi_scores and true_scores to a csv file and calculate RMSE in different script
+    # Save mystoi_scores and true_scores to a csv file and calculate RMSE in different script
     mystoi_output_file = f"mystoi_scores_{timestamp}.csv"
     mystoi_df = pd.DataFrame({"Scene_Index": range(len(mystoi_scores)), "STOI_Value": mystoi_scores})
     mystoi_df.to_csv(mystoi_output_file, index=False)  # Save without the index column
     print(f"mystoi_scores saved to {mystoi_output_file}")
-    # Save pystoi_scores to another CSV file
-    pystoi_output_file = f"pystoi_scores_{timestamp}.csv"
-    pystoi_df = pd.DataFrame({"Scene_Index": range(len(pystoi_scores)), "STOI_Value": pystoi_scores})
-    pystoi_df.to_csv(pystoi_output_file, index=False)  # Save without the index column
-    print(f"pystoi_scores saved to {pystoi_output_file}")
     #!SECTION
 
 

@@ -289,19 +289,4 @@ def remove_silent_frames(clean_audio, spin_audio, dyn_range, true_frame_len, ove
 
     return clean_no_sil, spin_no_sil
 
-
-def calc_RMSE(stoi_arr, listeners_arr) -> float:
-    """
-    Calculates Root Mean Squared Error value when given a list of computed STOI values and list of actual listeners scores (true intelligibility). 
-    
-    Arguments:
-        stoi_arr (list[float] or np.ndarray): A list of STOI values
-        listeners_arr (list[float] or np.ndarray): A list of true intelligibility values from clarity JSON file
-
-    Returns:
-        float: RMSE value
-    """
-    error = stoi_arr - listeners_arr
-    return np.sqrt(np.mean((error) ** 2))
-
 #!SECTION
