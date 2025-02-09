@@ -23,9 +23,12 @@ timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # Format: YYYY-MM-DD_H
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(path_data: DictConfig) -> None:
+
+    DATASET_PATH = path_data.test_path
+
     # SECTION - Open reference JSON file
     try:
-        with open(path_data.test_path.ref_file, 'r') as ref_file:
+        with open(DATASET_PATH.ref_file, 'r') as ref_file:
             ref_json = json.load(ref_file)
             
             # SECTION - Loop over each scene in JSON file and compute STOI
@@ -36,11 +39,12 @@ def main(path_data: DictConfig) -> None:
             
                 # SECTION - Load and resample SPIN and clean audio 
                 # Path of audio files to open, HA_Output and target_anechoic
-                spin_file_path = Path(path_data.test_path.spin_folder) / f"{ref_json[scene_index]['signal']}.wav"
-                target_file_path = Path(path_data.test_path.scenes_folder) / f"{ref_json[scene_index]['scene']}_target_anechoic.wav"
+                spin_file_path = Path(DATASET_PATH.spin_folder) / f"{ref_json[scene_index]['signal']}.wav"
+                target_file_path = Path(DATASET_PATH.scenes_folder) / f"{ref_json[scene_index]['scene']}_target_anechoic.wav"
                 # Opening audio files using soundfile
                 spin, spin_sr = sf.read(spin_file_path)
                 target, target_sr = sf.read(target_file_path)
+                # TODO - Maybe remove first 2 seconds of signals for CPC1 data (to prevent extra computation in removal of silent frames)
                 # Resampling
                 new_sr = path_data.sample_rate
                 # REVIEW - Can use scipy (resample or decimate functions) or librosa library. Some issue with scipy using only frequency domain or something like that.
@@ -135,6 +139,10 @@ def main(path_data: DictConfig) -> None:
                 # Store computed STOI values to list
                 mystoi_scores.append(stoi_val)
 
+                # Print to terminal every 100 scenes
+                if scene_index % 100 == 0:
+                    print(f"Scene {scene_index} of {len(ref_json)} processed.")
+
                 # break  # for running only one scene
             #!SECTION
 
@@ -142,7 +150,7 @@ def main(path_data: DictConfig) -> None:
 
         ref_file.close()
     except FileNotFoundError:
-        raise Exception(f'JSON file not found: {path_data.test_path.ref_file}')
+        raise Exception(f'JSON file not found: {DATASET_PATH.ref_file}')
     finally:
         print(f'Finished processing Test JSON file.')
     #!SECTION

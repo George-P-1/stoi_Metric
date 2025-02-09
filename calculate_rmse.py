@@ -32,6 +32,10 @@ def main() -> None:
     # Only 1000 samples
     # mystoi_csv_path = "mystoi_scores_2025-01-16_17-25-56.csv"
     # pystoi_csv_path = "pystoi_scores_2025-01-16_17-25-56.csv"
+    # Test Indep Dataset
+    mystoi_csv_path = "mystoi_train_indep_1.csv"
+    pystoi_csv_path = "mystoi_train_indep_2.csv"
+
 
     # Import data frame
     mystoi_df = pd.read_csv(mystoi_csv_path)
